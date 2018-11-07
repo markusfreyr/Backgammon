@@ -11,8 +11,7 @@ import torch
 from torch.autograd import Variable
 device = torch.device('cpu')
 
-# define the parameters for the single hidden layer feed forward neural network
-# randomly initialized weights with zeros for the biases
+# ef Z_.. breyturnar eru partur af modelinu má taka þetta út
 w1 = Variable(torch.randn((31*2,29), device = device, dtype=torch.float), requires_grad = True)
 b1 = Variable(torch.zeros((31*2,31), device = device, dtype=torch.float), requires_grad = True)
 w2 = Variable(torch.randn((1,31*2), device = device, dtype=torch.float), requires_grad = True)
@@ -20,6 +19,7 @@ b2 = Variable(torch.zeros((1,31), device = device, dtype=torch.float), requires_
 w3 = Variable(torch.randn((31,1), device = device, dtype=torch.float), requires_grad = True)
 b3 = Variable(torch.zeros((1,1), device = device, dtype=torch.float), requires_grad = True)
 
+# Þetta gæti verið partur af modelinu bara, það er nice
 Z_w1 = torch.zeros(w1.size(), device = device, dtype = torch.float)
 Z_b1 = torch.zeros(b1.size(), device = device, dtype = torch.float)
 Z_w2 = torch.zeros(w2.size(), device = device, dtype = torch.float)
