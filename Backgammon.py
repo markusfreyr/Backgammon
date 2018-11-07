@@ -204,7 +204,7 @@ def random_agent(board_copy,dice,player,i):
 def play_a_game(commentary = False):
 	board = init_board() # initialize the board
 	player = np.random.randint(2)*2-1 # which player begins?
-	nrMove = 0
+	#nrMove = 0
 	
 	# play on
 	while not game_over(board) and not check_for_error(board):
@@ -225,7 +225,7 @@ def play_a_game(commentary = False):
 			# if you're playing vs random agent:
 			if player == 1:
 			   move = agent.action(board_copy,dice,player,i)
-			   agent.update(board_copy, nrMove)
+			   #agent.update(board_copy, nrMove)
 			elif player == -1:
 				 move = random_agent(board_copy,dice,player,i) 
 			
@@ -239,13 +239,13 @@ def play_a_game(commentary = False):
 				print("move from player",player,":")
 				pretty_print(board)
 
-		nrMove += 1
+		#nrMove += 1
 				
 		# players take turns 
 		player = -player
 
-	reward = 1 if player == -1 else 0
-	agent.update(np.copy(board), nrMove, reward=reward)
+	#reward = 1 if player == -1 else 0
+	#agent.update(np.copy(board), nrMove, reward=reward)
 			
 	# return the winner
 	return -1*player
