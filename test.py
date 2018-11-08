@@ -32,24 +32,9 @@ Z_b3 = torch.zeros(b3.size(), device = device, dtype = torch.float)
 xold = []
 count = 0
 
-#### NEW 
-class ActorNet(torch.nn.Module):
-	def __init__(self, D_in, H1, H2, D_out):
-		super(ActorNet, self).__init__()
-		self.linear1 = torch.nn.Linear(D_in,H1) #in 29x31 31x29*2 out 29x29*2
-		self.linear2 = torch.nn.Linear(H1, H2) #in 29x29*2 29*2x1 out 29x1
-		self.linear3 = torch.nn.Linear(D_out, H2) #in 1x29 29x1 out 1x1 smá mix útaf transpose..
-
-	def forward(self, x):
-		h1 = self.linear1(x).sigmoid()
-		h2 = self.linear2(h1).sigmoid()
-		y = self.linear3(torch.transpose(h2, 0, 1)).sigmoid()
-
-		return y
 
 
-#Global actor
-actorModel = ActorNet(31, 29*2, 1, 29)
+
 
 def action(board_copy,dice,player,i):
     global count
@@ -153,12 +138,21 @@ def one_hot_encoding(data, nb_classes=31):
 
 
 
+class ActorNet(torch.nn.Module):
+	def __init__(self):
+		super(ActorNet, self).__init__()
+		self.linear1 = torch.nn.Linear(31,4) #in 31*2X29 29X31 out 31*2 X 31
 
+
+	def forward(self, x):
+		y = self.linear1(x).sigmoid()
+
+		return y
 
 
 
 def main():
-	model = ActorNet(31, 29*2, 1, 29)
+	model = ActorNet()
 	board = np.zeros(29)
 	board[1] = -2
 	board[12] = -5
@@ -172,9 +166,12 @@ def main():
 	x = Variable(torch.tensor(one_hot_encoding(board), dtype = torch.float, device = device)).view(29,31)
 	y = model.forward(x);
 
-	w = list(model.named_parameters()) # skilar tensorunum [w1,b1,w2,b2...]
-	t = list(w[0])
-	print(w[0])
+	output = model.forward(x)
+	print(output.size())
+	param = list(model.parameters())
+	print(param[0].size())
+
+
 
 if __name__ == '__main__':
 	main()

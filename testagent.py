@@ -11,22 +11,7 @@ import torch
 from torch.autograd import Variable
 device = torch.device('cpu')
 
-# ef Z_.. breyturnar eru partur af modelinu má taka þetta út
-w1 = Variable(torch.randn((31*2,29), device = device, dtype=torch.float), requires_grad = True)
-b1 = Variable(torch.zeros((31*2,31), device = device, dtype=torch.float), requires_grad = True)
-w2 = Variable(torch.randn((1,31*2), device = device, dtype=torch.float), requires_grad = True)
-b2 = Variable(torch.zeros((1,31), device = device, dtype=torch.float), requires_grad = True)
-w3 = Variable(torch.randn((31,1), device = device, dtype=torch.float), requires_grad = True)
-b3 = Variable(torch.zeros((1,1), device = device, dtype=torch.float), requires_grad = True)
-
 # Þetta gæti verið partur af modelinu bara, það er nice
-Z_w1 = torch.zeros(w1.size(), device = device, dtype = torch.float)
-Z_b1 = torch.zeros(b1.size(), device = device, dtype = torch.float)
-Z_w2 = torch.zeros(w2.size(), device = device, dtype = torch.float)
-Z_b2 = torch.zeros(b2.size(), device = device, dtype = torch.float)
-Z_w3 = torch.zeros(w3.size(), device = device, dtype = torch.float)
-Z_b3 = torch.zeros(b3.size(), device = device, dtype = torch.float)
-
 xold = []
 count = 0
 
@@ -34,13 +19,21 @@ count = 0
 class ActorNet(torch.nn.Module):
 	def __init__(self, D_in, H1, H2, D_out):
 		super(ActorNet, self).__init__()
-		self.linear1 = torch.nn.Linear(D_in,H1) #in 29x31 31x29*2 out 29x29*2
-		self.linear2 = torch.nn.Linear(H1, H2) #in 29x29*2 29*2x1 out 29x1
-		self.linear3 = torch.nn.Linear(D_out, H2) #in 1x29 29x1 out 1x1 smá mix útaf transpose..
+		self.linear1 = torch.nn.Linear(D_in,H1) #in 29X31 - 31X29*2 out 29 X 29*2
+		self.linear2 = torch.nn.Linear(H1, H2) #in 29X29*2 - 29*2X1 out 29 X 1
+		self.linear3 = torch.nn.Linear(D_out, H2) #in (29X1)T - 29 X 1 out 1x1 smá mix útaf transpose..
+
+		self.Z_w1 = torch.transpose(torch.zeros((31,29*2), device = device, dtype = torch.float), 0, 1)
+		self.Z_b1 = torch.zeros(29,29*2, device = device, dtype = torch.float)
+		self.Z_w2 = torch.zeros(1,29*2, device = device, dtype = torch.float)
+		self.Z_b2 = torch.zeros(1,29, device = device, dtype = torch.float)
+		self.Z_w3 = torch.zeros(1,29, device = device, dtype = torch.float)
+		self.Z_b3 = torch.zeros(1,1, device = device, dtype = torch.float)
 
 	def forward(self, x):
 		h1 = self.linear1(x).sigmoid()
 		h2 = self.linear2(h1).sigmoid()
+		#print(h2.size(), 'h2')
 		y = self.linear3(torch.transpose(h2, 0, 1)).sigmoid()
 
 		return y
@@ -72,14 +65,17 @@ def action(board_copy,dice,player,i):
 
         # encode the board to create the input
         x = Variable(torch.tensor(one_hot_encoding(board), dtype = torch.float, device = device)).view(29,31)
+        #print(x.size(), 'x')
         y = actorModel.forward(x)
         va[i] = y
 
     count += 1
 
     if not Backgammon.game_over(possible_boards[np.argmax(va)]):
+        print('1')
         update(possible_boards[np.argmax(va)])
     else:
+        print('2')
         reward = 1 if player == 1 else 0
         update(possible_boards[np.argmax(va)],reward)
 
@@ -117,21 +113,22 @@ def update(board, reward=0):
         # using autograd and the contructed computational graph in pytorch compute all gradients
         y.backward() 
 				
-        param = list(model.parameters())
-        w1 = param[0].grad.data
-        b1 = param[1].grad.data
-        w2 = param[2].grad.data
-        b2 = param[3].grad.data
-        w3 = param[4].grad.data
-        b3 = param[5].grad.data
+        param = list(actorModel.parameters())
+        w1 = param[0]
+        b1 = param[1]
+        w2 = param[2]
+        b2 = param[3]
+        w3 = param[4]
+        b3 = param[5]
+
 
         # update the eligibility traces using the gradients
-        Z_w3 = gamma * lam * Z_w3 + w3.grad.data 
-        Z_b3 = gamma * lam * Z_b3 + b3.grad.data 
-        Z_w2 = gamma * lam * Z_w2 + w2.grad.data
-        Z_b2 = gamma * lam * Z_b2 + b2.grad.data
-        Z_w1 = gamma * lam * Z_w1 + w1.grad.data
-        Z_b1 = gamma * lam * Z_b1 + b1.grad.data
+        actorModel.Z_w3 = gamma * lam * actorModel.Z_w3 + w3.grad.data 
+        #actorModel.Z_b3 = gamma * lam * actorModel.Z_b3 + b3.grad.data 
+        actorModel.Z_w2 = gamma * lam * actorModel.Z_w2 + w2.grad.data
+        #actorModel.Z_b2 = gamma * lam * actorModel.Z_b2 + b2.grad.data
+        actorModel.Z_w1 = gamma * lam * actorModel.Z_w1 + w1.grad.data
+        #actorModel.Z_b1 = gamma * lam * actorModel.Z_b1 + b1.grad.data
         # zero the gradients
         w3.grad.data.zero_()
         b3.grad.data.zero_()
@@ -141,12 +138,12 @@ def update(board, reward=0):
         b1.grad.data.zero_()
         # perform now the update for the weights
         delta2 =  torch.tensor(delta2, dtype = torch.float, device = device)
-        w1.data = w1.data + alpha1 * delta2 * Z_w1
-        b1.data = b1.data + alpha1 * delta2 * Z_b1
-        w2.data = w2.data + alpha2 * delta2 * Z_w2
-        b2.data = b2.data + alpha2 * delta2 * Z_b2
-        w3.data = w3.data + alpha3 * delta2 * Z_w3
-        b3.data = b3.data + alpha3 * delta2 * Z_b3
+        w1.data = w1.data + alpha1 * delta2 * actorModel.Z_w1
+        #b1.data = b1.data + alpha1 * delta2 * actorModel.Z_b1
+        w2.data = w2.data + alpha2 * delta2 * actorModel.Z_w2
+        #b2.data = b2.data + alpha2 * delta2 * actorModel.Z_b2
+        w3.data = w3.data + alpha3 * delta2 * actorModel.Z_w3
+        #b3.data = b3.data + alpha3 * delta2 * actorModel.Z_b3
 
 
     xold = Variable(torch.tensor(one_hot_encoding(board), dtype = torch.float, device = device)).view(29,31)

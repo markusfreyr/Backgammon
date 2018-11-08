@@ -10,6 +10,7 @@ so make sure your changes here won't affect his performance.
 """
 import numpy as np
 import agent
+import testagent
 # import flipped_agent 
 
 def init_board():
@@ -224,7 +225,7 @@ def play_a_game(commentary = False):
 			
 			# if you're playing vs random agent:
 			if player == 1:
-			   move = agent.action(board_copy,dice,player,i)
+			   move = testagent.action(board_copy,dice,player,i)
 			   #agent.update(board_copy, nrMove)
 			elif player == -1:
 				 move = random_agent(board_copy,dice,player,i) 
@@ -252,8 +253,8 @@ def play_a_game(commentary = False):
 
 def main():
 	winners = {}; winners["1"]=0; winners["-1"]=0; # Collecting stats of the games
-	nGames = 100 # how many games?
-	for i in range(1, 21):
+	nGames = 1 # how many games?
+	for i in range(1, 2):
 		for g in range(nGames):
 			winner = play_a_game(commentary=False)
 			winners[str(winner)] += 1
