@@ -23,12 +23,12 @@ class ActorNet(torch.nn.Module):
 		self.linear2 = torch.nn.Linear(H1, H2) #in 29X29*2 - 29*2X1 out 29 X 1
 		self.linear3 = torch.nn.Linear(D_out, H2) #in (29X1)T - 29 X 1 out 1x1 smá mix útaf transpose..
 
-		self.Z_w1 = torch.transpose(torch.zeros((31,29*2), device = device, dtype = torch.float), 0, 1)
-		self.Z_b1 = torch.zeros(29,29*2, device = device, dtype = torch.float)
-		self.Z_w2 = torch.zeros(1,29*2, device = device, dtype = torch.float)
-		self.Z_b2 = torch.zeros(1,29, device = device, dtype = torch.float)
-		self.Z_w3 = torch.zeros(1,29, device = device, dtype = torch.float)
-		self.Z_b3 = torch.zeros(1,1, device = device, dtype = torch.float)
+		self.Z_w1 = torch.transpose(torch.zeros((31,29*2), device = device, dtype = torch.float), 0, 1) # size 31x58
+		self.Z_b1 = torch.zeros(29*2, device = device, dtype = torch.float) # size 1
+		self.Z_w2 = torch.zeros(1,29*2, device = device, dtype = torch.float) # size 1x58
+		self.Z_b2 = torch.zeros(1, device = device, dtype = torch.float) # size 1
+		self.Z_w3 = torch.zeros(1,29, device = device, dtype = torch.float) # size 1x29
+		self.Z_b3 = torch.zeros(1, device = device, dtype = torch.float) # size 1
 
 	def forward(self, x):
 		h1 = self.linear1(x).sigmoid()
@@ -124,9 +124,9 @@ def update(board, reward=0):
 
         # update the eligibility traces using the gradients
         actorModel.Z_w3 = gamma * lam * actorModel.Z_w3 + w3.grad.data 
-        #actorModel.Z_b3 = gamma * lam * actorModel.Z_b3 + b3.grad.data 
+        actorModel.Z_b3 = gamma * lam * actorModel.Z_b3 + b3.grad.data 
         actorModel.Z_w2 = gamma * lam * actorModel.Z_w2 + w2.grad.data
-        #actorModel.Z_b2 = gamma * lam * actorModel.Z_b2 + b2.grad.data
+        actorModel.Z_b2 = gamma * lam * actorModel.Z_b2 + b2.grad.data
         actorModel.Z_w1 = gamma * lam * actorModel.Z_w1 + w1.grad.data
         #actorModel.Z_b1 = gamma * lam * actorModel.Z_b1 + b1.grad.data
         # zero the gradients
@@ -138,12 +138,14 @@ def update(board, reward=0):
         b1.grad.data.zero_()
         # perform now the update for the weights
         delta2 =  torch.tensor(delta2, dtype = torch.float, device = device)
+        # delta2 er 1x1 en b1,b2,b3 eru bara 1, margföldum því með delta[0] fyrir bias
         w1.data = w1.data + alpha1 * delta2 * actorModel.Z_w1
-        #b1.data = b1.data + alpha1 * delta2 * actorModel.Z_b1
+        b1.data = b1.data + alpha1 * delta2[0] * actorModel.Z_b1
         w2.data = w2.data + alpha2 * delta2 * actorModel.Z_w2
-        #b2.data = b2.data + alpha2 * delta2 * actorModel.Z_b2
+        b2.data = b2.data + alpha2 * delta2[0] * actorModel.Z_b2
         w3.data = w3.data + alpha3 * delta2 * actorModel.Z_w3
-        #b3.data = b3.data + alpha3 * delta2 * actorModel.Z_b3
+        b3.data = b3.data + alpha3 * delta2[0] * actorModel.Z_b3
+
 
 
     xold = Variable(torch.tensor(one_hot_encoding(board), dtype = torch.float, device = device)).view(29,31)
