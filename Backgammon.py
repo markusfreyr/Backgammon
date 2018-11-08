@@ -253,14 +253,16 @@ def play_a_game(commentary = False):
 
 def main():
 	winners = {}; winners["1"]=0; winners["-1"]=0; # Collecting stats of the games
-	nGames = 1 # how many games?
-	for i in range(1, 2):
+	nGames = 100 # how many games?
+	for i in range(1, 4):
 		for g in range(nGames):
 			winner = play_a_game(commentary=False)
 			winners[str(winner)] += 1
 		print("Out of", nGames*i, "games,")
 		print("player", 1, "won", winners["1"],"times and")
 		print("player", -1, "won", winners["-1"],"times")
+	
+	testagent.save()
 
 if __name__ == '__main__':
 	main()

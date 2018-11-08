@@ -42,6 +42,16 @@ class ActorNet(torch.nn.Module):
 #Global actor
 actorModel = ActorNet(31, 29*2, 1, 29)
 
+
+try:
+	actorData = torch.load("ActorModel")
+	actorModel.load_state_dict(actorData)
+	actorModel.eval()
+	print(actorData, 'fromload')
+except FileNotFoundError:
+	print('starting fresh')
+
+
 def action(board_copy,dice,player,i):
     global count
     # the champion to be
@@ -72,11 +82,9 @@ def action(board_copy,dice,player,i):
     count += 1
 
     if not Backgammon.game_over(possible_boards[np.argmax(va)]):
-        print('1')
         update(possible_boards[np.argmax(va)])
     else:
-        print('2')
-        reward = 1 if player == 1 else 0
+        reward = 1 if player == 1 else -1
         update(possible_boards[np.argmax(va)],reward)
 
     return possible_moves[np.argmax(va)]
@@ -157,6 +165,10 @@ def one_hot_encoding(data, nb_classes=31):
     targets = np.array(data).reshape(-1)
     return np.eye(nb_classes)[targets.astype(int)]
 
+def save():
+	torch.save(actorModel.state_dict(), 'ActorModel')
+	print(actorModel.state_dict(), 'fromsave')
+
 
 
 
@@ -180,15 +192,17 @@ def main():
 
 	##Ath mymodel file-inn hann inniheldur gögnin
 	torch.save(model.state_dict(), "mymodel")
+	try:
+		test = torch.load("ekkitil")
+	except FileNotFoundError:
+		print('starting fresh')
 
-	test1 = torch.load("mymodel")
-
-	print(model.state_dict()) 
+	""" print(model.state_dict()) 
 	print('\n')
 	print('\n')
 	print('\n')
 	print('\n')
-	print(test1)
+	print(test1) """
 
 	## test1 er það sama og var save-að svo þetta er nice
 	## Þetta mundi búa til nýtt model fyrir gömul gögn (Y)
