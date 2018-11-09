@@ -8,7 +8,10 @@ perceive the board as player 1
 import numpy as np
 import Backgammon
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
 from torch.autograd import Variable
+import flipped_agent
 device = torch.device('cpu')
 
 # Þetta gæti verið partur af modelinu bara, það er nice
@@ -16,12 +19,12 @@ xold = []
 count = 0
 
 #### NEW 
-class ActorNet(torch.nn.Module):
+class ActorNet(nn.Module):
 	def __init__(self, D_in, H1, H2, D_out):
 		super(ActorNet, self).__init__()
-		self.linear1 = torch.nn.Linear(D_in,H1) #in 29X31 - 31X29*2 out 29 X 29*2
-		self.linear2 = torch.nn.Linear(H1, H2) #in 29X29*2 - 29*2X1 out 29 X 1
-		self.linear3 = torch.nn.Linear(D_out, H2) #in (29X1)T - 29 X 1 out 1x1 smá mix útaf transpose..
+		self.linear1 = nn.Linear(D_in,H1) #in 29X31 - 31X29*2 out 29 X 29*2
+		self.linear2 = nn.Linear(H1, H2) #in 29X29*2 - 29*2X1 out 29 X 1
+		self.linear3 = nn.Linear(D_out, H2) #in (29X1)T - 29 X 1 out 1x1 smá mix útaf transpose..
 
 		self.Z_w1 = torch.transpose(torch.zeros((31,29*2), device = device, dtype = torch.float), 0, 1) # size 31x58
 		self.Z_b1 = torch.zeros(29*2, device = device, dtype = torch.float) # size 1
@@ -31,10 +34,10 @@ class ActorNet(torch.nn.Module):
 		self.Z_b3 = torch.zeros(1, device = device, dtype = torch.float) # size 1
 
 	def forward(self, x):
-		h1 = self.linear1(x).sigmoid()
-		h2 = self.linear2(h1).sigmoid()
+		h1 = F.relu(self.linear1(x)).sigmoid()
+		h2 = F.relu(self.linear2(h1)).sigmoid()
 		#print(h2.size(), 'h2')
-		y = self.linear3(torch.transpose(h2, 0, 1)).sigmoid()
+		y = F.relu(self.linear3(torch.transpose(h2, 0, 1))).sigmoid()
 
 		return y
 
@@ -57,9 +60,11 @@ def action(board_copy,dice,player,i):
     # the champion to be
     # inputs are the board, the dice and which player is to move
     # outputs the chosen move accordingly to its policy
+
+    if player == -1: board_copy = flipped_agent.flip_board(np.copy(board_copy))
     
     # check out the legal moves available for the throw
-    possible_moves, possible_boards = Backgammon.legal_moves(board_copy, dice, player)
+    possible_moves, possible_boards = Backgammon.legal_moves(board_copy, dice, 1)
 
     # if there are no moves available
     if len(possible_moves) == 0:
@@ -81,13 +86,14 @@ def action(board_copy,dice,player,i):
 
     count += 1
 
-    if not Backgammon.game_over(possible_boards[np.argmax(va)]):
+    """ if not Backgammon.game_over(possible_boards[np.argmax(va)]):
         update(possible_boards[np.argmax(va)])
     else:
-        reward = 1 if player == 1 else -1
-        update(possible_boards[np.argmax(va)],reward)
+        update(possible_boards[np.argmax(va)],1) """
 
-    return possible_moves[np.argmax(va)]
+    move = possible_moves[np.argmax(va)]
+    if player == -1: move = flipped_agent.flip_move(move)
+    return move
     
 
     # policy missing, returns a random move for the time being

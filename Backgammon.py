@@ -225,7 +225,7 @@ def play_a_game(commentary = False):
 			
 			# if you're playing vs random agent:
 			if player == 1:
-			   move = testagent.action(board_copy,dice,player,i)
+				move = testagent.action(board_copy,dice,player,i)
 			   #agent.update(board_copy, nrMove)
 			elif player == -1:
 				 move = random_agent(board_copy,dice,player,i) 
@@ -254,7 +254,7 @@ def play_a_game(commentary = False):
 def main():
 	winners = {}; winners["1"]=0; winners["-1"]=0; # Collecting stats of the games
 	nGames = 100 # how many games?
-	for i in range(1, 4):
+	for i in range(1, 21):
 		for g in range(nGames):
 			winner = play_a_game(commentary=False)
 			winners[str(winner)] += 1
