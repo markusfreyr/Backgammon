@@ -9,7 +9,10 @@ Feel free to change this file as you wish but you will only submit your agent
 so make sure your changes here won't affect his performance.
 """
 import numpy as np
+import time
 import agent
+import random
+import matplotlib.pyplot as plt
 # import flipped_agent 
 
 def init_board():
@@ -48,9 +51,7 @@ def pretty_print(board):
 	string = str(np.array2string(board[1:13])+'\n'+
 				 np.array2string(board[24:12:-1])+'\n'+
 				 np.array2string(board[25:29]))
-	print("board: \n", string)
-	
-			
+	print("board: \n", string)		
 		
 def legal_move(board, die, player):
 	# finds legal moves for a board and one dice
@@ -183,7 +184,6 @@ def update_board(board, move, player):
 
 	return board_to_update
 	
-	
 def random_agent(board_copy,dice,player,i):
 	# random agent
 	# inputs are the board, the dice and which player is to move
@@ -200,7 +200,6 @@ def random_agent(board_copy,dice,player,i):
 	move = possible_moves[np.random.randint(len(possible_moves))]
 	return move
 	
-
 def play_a_game(commentary = False):
 	board = init_board() # initialize the board
 	player = np.random.randint(2)*2-1 # which player begins?
@@ -244,6 +243,9 @@ def play_a_game(commentary = False):
 		# players take turns 
 		player = -player
 
+	if player == 1:
+		#agent.update(np.copy(board),reward=-1,new_game=True)
+		agent.update(np.copy(board),reward=-1)
 	#reward = 1 if player == -1 else 0
 	#agent.update(np.copy(board), nrMove, reward=reward)
 			
@@ -252,17 +254,33 @@ def play_a_game(commentary = False):
 
 def main():
 	winners = {}; winners["1"]=0; winners["-1"]=0; # Collecting stats of the games
-	nGames = 100 # how many games?
-	for i in range(1, 21):
+	nGames = 10 # how many games?
+	nbatch = 500
+	win_ratio = np.zeros(nbatch)
+	wins = np.zeros(nbatch)
+	for i in range(1, nbatch+1):
+		wins_in_batch = 0
 		for g in range(nGames):
 			winner = play_a_game(commentary=False)
 			winners[str(winner)] += 1
-		print("Out of", nGames*i, "games,")
-		print("player", 1, "won", winners["1"],"times and")
-		print("player", -1, "won", winners["-1"],"times")
+			if winner == 1:
+				wins_in_batch += 1
+		win_ratio[i-1] = wins_in_batch/nGames
+		wins[i-1] = winners["1"]/(nGames*i)
+		#print(winners["1"]/(nGames*i))
+		#print("Out of", nGames*i, "games,")
+		#print("player", 1, "won", winners["1"],"times and")
+		#print("player", -1, "won", winners["-1"],"times")
+	plt.plot(win_ratio)
+	plt.show()
+	plt.plot(wins)
+	plt.show()
 
 if __name__ == '__main__':
+	a = time.time()
 	main()
+	b = time.time()
+	print(b-a)
 	
 	
 
