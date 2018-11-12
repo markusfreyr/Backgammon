@@ -10,6 +10,9 @@ so make sure your changes here won't affect his performance.
 """
 import numpy as np
 import agent
+import testagent
+import time
+import matplotlib.pyplot as plt
 # import flipped_agent 
 
 def init_board():
@@ -32,7 +35,7 @@ def roll_dice():
 
 def game_over(board):
 	# returns True if the game is over    
-	return board[27]==15 or board[28]==-15
+	return board[27]>=15 or board[28]<=-15
 
 def check_for_error(board):
 	# checks for obvious errors
@@ -224,10 +227,10 @@ def play_a_game(commentary = False):
 			
 			# if you're playing vs random agent:
 			if player == 1:
-			   move = agent.action(board_copy,dice,player,i)
+			  move = testagent.action(board_copy,dice,player,i)
 			   #agent.update(board_copy, nrMove)
 			elif player == -1:
-				 move = random_agent(board_copy,dice,player,i) 
+			  move = random_agent(board_copy,dice,player,i) 
 			
 			# update the board
 			if len(move) != 0:
@@ -244,25 +247,70 @@ def play_a_game(commentary = False):
 		# players take turns 
 		player = -player
 
-	#reward = 1 if player == -1 else 0
-	#agent.update(np.copy(board), nrMove, reward=reward)
+	reward = 1 if player == -1 else 0
+	agent.update(np.copy(board), reward=reward)
 			
 	# return the winner
+	'''
+	print()
+	print("the game is over")
+	print("winner: player ",-1*player)
+	print("winning board")
+	print(board)
+	print("game over")
+	print(game_over(board))
+	print("error")
+	print(check_for_error(board))
+	print()
+	'''
+	
 	return -1*player
 
 def main():
 	winners = {}; winners["1"]=0; winners["-1"]=0; # Collecting stats of the games
-	nGames = 100 # how many games?
-	for i in range(1, 21):
+	nGames = 20 # how many games?
+	nbatch = 50
+	progression = np.zeros(nbatch)
+	preg = np.zeros(nbatch)
+	for i in range(1, nbatch + 1):
+		wins_batch = 0
 		for g in range(nGames):
 			winner = play_a_game(commentary=False)
 			winners[str(winner)] += 1
+			if winner == 1:
+				wins_batch += 1
+		progression[i-1] = wins_batch/nGames
+		preg[i-1] = winners["1"]/(nGames*i)
+		print(i)
+		'''
 		print("Out of", nGames*i, "games,")
 		print("player", 1, "won", winners["1"],"times and")
 		print("player", -1, "won", winners["-1"],"times")
+		print()
+		print("Out of 100 games,")
+		print("player", 1, "won", wins_batch,"times and")
+		print("player", -1, "won", 100-wins_batch,"times")
+		print()
+		'''
+		
+	print(winners["1"], "player 1")
+	plt.plot(progression)
+	plt.show()
+	plt.plot(preg)
+	plt.show()
+	#testagent.save()
 
 if __name__ == '__main__':
-	main()
 	
+	a = time.time()
+	main()
+	b = time.time()
+	print(b-a)
+	'''
+	#print([ 0,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 0, -2, -1, -1,  0, -2, -8,  0,  0, 14, -1.])
+	board = np.array([ 0 , 1 ,-1 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ,-2  ,0  ,0  ,0  ,0  ,0 ,0  ,0 ,-1 ,-1 ,-2, -3, -5,  0,  0, 14,  0])
+	dice = np.array([3,6])
+	print(legal_moves(board,dice,1))
+	'''
 	
 
