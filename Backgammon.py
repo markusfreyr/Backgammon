@@ -33,8 +33,8 @@ def roll_dice():
 	return dice
 
 def game_over(board):
-	# returns True if the game is over    
-	return board[27]>=15 or board[28]<=-15
+	# returns True if the game is over   
+	return board[27] == 15 or board[28] == -15
 
 def check_for_error(board):
 	# checks for obvious errors
@@ -228,7 +228,6 @@ def play_a_game(commentary = False):
 			# if you're playing vs random agent:
 			if player == -1:
 			  move, win = testagent.action(board_copy,dice,player,i)
-			   #agent.update(board_copy, nrMove)
 			elif player == 1:
 			  move = random_agent(board_copy,dice,player,i) 
 			
@@ -256,8 +255,7 @@ def play_a_game(commentary = False):
 def main():
 	winners = {}; winners["1"]=0; winners["-1"]=0; # Collecting stats of the games
 	nGames = 100 # how many games?
-	print("training against self")
-	for i in range(1, 2):
+	for i in range(1, 11):
 		for g in range(nGames):
 			winner = play_a_game(commentary=False)
 			winners[str(winner)] += 1
