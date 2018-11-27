@@ -11,6 +11,7 @@ so make sure your changes here won't affect his performance.
 import numpy as np
 import agent
 import testagent
+#import pubeval
 # import flipped_agent 
 win = 0
 
@@ -264,7 +265,7 @@ def main():
 		print("player", -1, "won", winners["-1"],"times")
 		print("agent thinks he won:",win)
 	
-	#testagent.save()
+	testagent.save()
 
 if __name__ == '__main__':
 	main()

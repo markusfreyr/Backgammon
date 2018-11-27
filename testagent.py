@@ -19,6 +19,7 @@ xold1 = []
 xold2 = []
 count = 0
 win = 0
+double = 0
 
 #### NEW 
 class Net(nn.Module):
@@ -43,24 +44,24 @@ class Net(nn.Module):
         self.Z_b3_p2 = torch.zeros(D_out, device = device, dtype = torch.float) # size 1
 
     def forward(self, x):
-        h1 = self.linear1(x).sigmoid()
-        h2 = self.linear2(h1).sigmoid()
+        h1 = self.linear1(x).tanh()
+        h2 = self.linear2(h1).tanh()
         y = self.linear3(h2).sigmoid()
 
         return y
 
 
 #Global actor
-actorModel = Net(31*29, 29*2, 20, 1)
-criticModel = Net(31*29, 29*2, 20, 1)
+actorModel = Net((31*29)+1, 29*2, 20, 1)
+criticModel = Net((31*29)+1, 29*2, 20, 1)
 
 
 try:
-    actorData = torch.load("ActorModel_self")
+    actorData = torch.load("ActorModel_minus")
     actorModel.load_state_dict(actorData)
     actorModel.eval()
 
-    criticData = torch.load("CriticModel_self")
+    criticData = torch.load("CriticModel_minus")
     criticModel.load_state_dict(criticData)
     criticModel.eval()
 except FileNotFoundError:
@@ -68,10 +69,12 @@ except FileNotFoundError:
 
 
 def action(board_copy,dice,player,i):
-    global count, win
+    global count, win, double
     # the champion to be
     # inputs are the board, the dice and which player is to move
     # outputs the chosen move accordingly to its policy
+
+    double = 1 if (dice[0]==dice[1] and i == 0) else 0
 
     if player == -1: board_copy = flipped_agent.flip_board(np.copy(board_copy))
     
@@ -90,8 +93,9 @@ def action(board_copy,dice,player,i):
         move = possible_moves[i]
 
         # this does not change the board_copy variable
+        board = np.copy(board_copy)
         for m in move:
-            board = Backgammon.update_board(board_copy, m, player)
+            board = Backgammon.update_board(board, m, 1)
 
         # encode the board to create the input
         x = Variable(torch.tensor(one_hot_encoding(board), dtype = torch.float, device = device))
@@ -108,7 +112,7 @@ def action(board_copy,dice,player,i):
     if player == -1: move = flipped_agent.flip_move(move)
     if player == -1: board_copy = flipped_agent.flip_board(board_copy)
     
-    ''' for m in move:
+    for m in move:
         board_copy = Backgammon.update_board(board_copy, m, player)
 
     if not Backgammon.game_over(board_copy) and not Backgammon.check_for_error(board_copy):
@@ -116,10 +120,9 @@ def action(board_copy,dice,player,i):
     else:
         win += 1
         update(board_copy, player, reward=1)
-        #update(flipped_agent.flip_board(possible_boards[np.argmax(va)]), player, reward=0) '''
+        update(flipped_agent.flip_board(board_copy), player*-1, reward=-1)
                 
 
-    
     
     return move, win
     
@@ -140,8 +143,8 @@ def update(board, player, reward=0):
     alpha2 = 0.01 # (second layer)
     alpha3 = 0.01 # (third layer)
     epsilon = 0.01 # exploration parameter used by both players
-    lam_a = 0.1 # lambda parameter in TD(lam-bda)
-    lam_c = 0.1
+    lam_a = 0.4 # lambda parameter in TD(lam-bda)
+    lam_c = 0.4
     gamma = 1 # for completeness
     global Z_w1, Z_b1, Z_w2, Z_b2,Z_w3, Z_b3, xold1, xold2,count
 
@@ -308,13 +311,15 @@ def update(board, player, reward=0):
 
 
 def one_hot_encoding(data, nb_classes=31):
+    global double
     """Convert an iterable of indices to one-hot encoded labels."""
     targets = np.array(data).reshape(-1)
-    return np.eye(nb_classes)[targets.astype(int)].flatten()
+    oneHot = np.eye(nb_classes)[targets.astype(int)].flatten()
+    return np.append(oneHot, [double])
 
 def save():
-    torch.save(actorModel.state_dict(), 'ActorModel_self')
-    torch.save(criticModel.state_dict(), 'CriticModel_self')
+    torch.save(actorModel.state_dict(), 'ActorModel_minus')
+    torch.save(criticModel.state_dict(), 'CriticModel_minus')
     
 
 
