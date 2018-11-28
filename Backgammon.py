@@ -227,10 +227,10 @@ def play_a_game(commentary = False):
 			#agent.update(board_copy, nrMove)
 			
 			# if you're playing vs random agent:
-			if player == -1:
-			  move, win = testagent.action(board_copy,dice,player,i)
-			elif player == 1:
-			  move = random_agent(board_copy,dice,player,i) 
+			if player == 1:
+				move, win = testagent.action(board_copy,dice,player,i)
+			elif player == -1:
+				move = random_agent(board_copy,dice,player,i) 
 			
 			# update the board
 			if len(move) != 0:
@@ -256,7 +256,7 @@ def play_a_game(commentary = False):
 def main():
 	winners = {}; winners["1"]=0; winners["-1"]=0; # Collecting stats of the games
 	nGames = 100 # how many games?
-	for i in range(1, 11):
+	for i in range(1, 601):
 		for g in range(nGames):
 			winner = play_a_game(commentary=False)
 			winners[str(winner)] += 1
@@ -264,8 +264,11 @@ def main():
 		print("player", 1, "won", winners["1"],"times and")
 		print("player", -1, "won", winners["-1"],"times")
 		print("agent thinks he won:",win)
+		if i%10 == 0:
+			print('saving weights')
+			testagent.save()
 	
-	testagent.save()
+	
 
 if __name__ == '__main__':
 	main()

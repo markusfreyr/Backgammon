@@ -82,6 +82,8 @@ def learn(n):
 	#while True:
 	for i in range(n):
 		count = 0
+		xold1 = []
+		xold2 = []
 		# initialize game
 		board = Backgammon.init_board()
 		state = feature_encoding(np.copy(board))
@@ -91,8 +93,9 @@ def learn(n):
 
 		theta_trans1 = np.zeros(196)
 		theta_trans2 = np.zeros(196)
-		z = 0
-		search(board)
+		z1 = 0
+		z2 = 0
+		search(board) #senda inn A,B og player inn í search ?? ?? ?? ??
 		action = action(np.copy(board), dice, player, 0)
 
 		while not Backgammon.game_over(board):
@@ -128,7 +131,7 @@ def learn(n):
 						delta = reward + Q_trans(state) - Q_trans(xold2)
 						#theta2 = theta2 + alpha(board,a)*delta*z
 						#z = lamb*z + phi
-						heta2 = theta2 + 0.1 * delta * z2
+						theta2 = theta2 + 0.1 * delta * z2
 						z2 = 0.1 * z2 + 0.1
 
 				if player == 1:

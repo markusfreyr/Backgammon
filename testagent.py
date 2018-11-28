@@ -46,7 +46,7 @@ class Net(nn.Module):
     def forward(self, x):
         h1 = self.linear1(x).tanh()
         h2 = self.linear2(h1).tanh()
-        y = self.linear3(h2).sigmoid()
+        y = self.linear3(h2).tanh()
 
         return y
 
@@ -57,13 +57,17 @@ criticModel = Net((31*29)+1, 29*2, 20, 1)
 
 
 try:
-    actorData = torch.load("ActorModel_minus")
+    a = "ActorModel_minus"
+    c = "CriticModel_minus"
+
+    actorData = torch.load(a)
     actorModel.load_state_dict(actorData)
     actorModel.eval()
 
-    criticData = torch.load("CriticModel_minus")
+    criticData = torch.load(c)
     criticModel.load_state_dict(criticData)
     criticModel.eval()
+    print('loading: ',a,c)
 except FileNotFoundError:
     print('starting fresh')
 
@@ -103,7 +107,7 @@ def action(board_copy,dice,player,i):
         y = actorModel.forward(x)
         va[i] = y
 
-    count += 1
+    if i == 0: count += 1
 
     # Get the best move, update board with that move
     # this changes the board_copy variable
@@ -112,30 +116,21 @@ def action(board_copy,dice,player,i):
     if player == -1: move = flipped_agent.flip_move(move)
     if player == -1: board_copy = flipped_agent.flip_board(board_copy)
     
+    looser_board = np.copy(board_copy)
     for m in move:
         board_copy = Backgammon.update_board(board_copy, m, player)
 
-    if not Backgammon.game_over(board_copy) and not Backgammon.check_for_error(board_copy):
+    """ if not Backgammon.game_over(board_copy) and not Backgammon.check_for_error(board_copy):
         update(board_copy, player)
     else:
         win += 1
         update(board_copy, player, reward=1)
-        update(flipped_agent.flip_board(board_copy), player*-1, reward=-1)
+        update(board_copy, player*-1, reward=-1) """
                 
 
     
     return move, win
-    
 
-    # policy missing, returns a random move for the time being
-    #
-    #
-    #
-    #
-    #
-"""     move = possible_moves[np.random.randint(len(possible_moves))]
-
-    return move """
 
 def update(board, player, reward=0):
     alpha = 0.01 # step size for tabular learning
@@ -143,8 +138,8 @@ def update(board, player, reward=0):
     alpha2 = 0.01 # (second layer)
     alpha3 = 0.01 # (third layer)
     epsilon = 0.01 # exploration parameter used by both players
-    lam_a = 0.4 # lambda parameter in TD(lam-bda)
-    lam_c = 0.4
+    lam_a = 0.3 # lambda parameter in TD(lam-bda)
+    lam_c = 0.3
     gamma = 1 # for completeness
     global Z_w1, Z_b1, Z_w2, Z_b2,Z_w3, Z_b3, xold1, xold2,count
 
@@ -307,6 +302,11 @@ def update(board, player, reward=0):
         xold1 = Variable(torch.tensor(one_hot_encoding(board), dtype = torch.float, device = device))
     else:
         xold2 = Variable(torch.tensor(one_hot_encoding(board), dtype = torch.float, device = device))
+
+    if reward == -1:
+        xold1 = []
+        xold2 = []
+        count = 0
 
 
 
