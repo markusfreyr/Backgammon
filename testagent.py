@@ -116,16 +116,7 @@ def action(board_copy,dice,player,i):
     if player == -1: move = flipped_agent.flip_move(move)
     if player == -1: board_copy = flipped_agent.flip_board(board_copy)
     
-    looser_board = np.copy(board_copy)
-    for m in move:
-        board_copy = Backgammon.update_board(board_copy, m, player)
-
-    """ if not Backgammon.game_over(board_copy) and not Backgammon.check_for_error(board_copy):
-        update(board_copy, player)
-    else:
-        win += 1
-        update(board_copy, player, reward=1)
-        update(board_copy, player*-1, reward=-1) """
+    
                 
 
     
@@ -133,13 +124,13 @@ def action(board_copy,dice,player,i):
 
 
 def update(board, player, reward=0):
-    alpha = 0.01 # step size for tabular learning
-    alpha1 = 0.01 # step sizes using for the neural network (first layer)
-    alpha2 = 0.01 # (second layer)
-    alpha3 = 0.01 # (third layer)
-    epsilon = 0.01 # exploration parameter used by both players
-    lam_a = 0.3 # lambda parameter in TD(lam-bda)
-    lam_c = 0.3
+    alpha = 0.005 # step size for tabular learning
+    alpha1 = 0.005 # step sizes using for the neural network (first layer)
+    alpha2 = 0.005 # (second layer)
+    alpha3 = 0.005 # (third layer)
+    epsilon = 0.005 # exploration parameter used by both players
+    lam_a = 0.7 # lambda parameter in TD(lam-bda)
+    lam_c = 0.7
     gamma = 1 # for completeness
     global Z_w1, Z_b1, Z_w2, Z_b2,Z_w3, Z_b3, xold1, xold2,count
 
