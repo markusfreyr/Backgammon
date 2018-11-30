@@ -20,6 +20,8 @@ xold2 = []
 count = 0
 win = 0
 double = 0
+actorModelName = "actorModel_A001_L09_ele"
+criticModelName = "criticModel_A001_L09_ele"
 
 #### NEW 
 class Net(nn.Module):
@@ -28,20 +30,6 @@ class Net(nn.Module):
         self.linear1 = nn.Linear(D_in,H1) #in 29X31 - 31X29*2 out 29 X 29*2
         self.linear2 = nn.Linear(H1, H2) #in 29X29*2 - 29*2X1 out 29 X 1
         self.linear3 = nn.Linear(H2, D_out) #in (29X1)T - 29 X 1 out 1x1 smá mix útaf transpose..
-
-        self.Z_w1_p1 = torch.transpose(torch.zeros((D_in,H1), device = device, dtype = torch.float), 0, 1) # size 31x58
-        self.Z_b1_p1 = torch.zeros(H1, device = device, dtype = torch.float) # size 1
-        self.Z_w2_p1 = torch.zeros(H2,H1, device = device, dtype = torch.float) # size 1x58
-        self.Z_b2_p1 = torch.zeros(H2, device = device, dtype = torch.float) # size 1
-        self.Z_w3_p1 = torch.zeros(D_out,H2, device = device, dtype = torch.float) # size 1x29
-        self.Z_b3_p1 = torch.zeros(D_out, device = device, dtype = torch.float) # size 1
-
-        self.Z_w1_p2 = torch.transpose(torch.zeros((D_in,H1), device = device, dtype = torch.float), 0, 1) # size 31x58
-        self.Z_b1_p2 = torch.zeros(H1, device = device, dtype = torch.float) # size 1
-        self.Z_w2_p2 = torch.zeros(H2,H1, device = device, dtype = torch.float) # size 1x58
-        self.Z_b2_p2 = torch.zeros(H2, device = device, dtype = torch.float) # size 1
-        self.Z_w3_p2 = torch.zeros(D_out,H2, device = device, dtype = torch.float) # size 1x29
-        self.Z_b3_p2 = torch.zeros(D_out, device = device, dtype = torch.float) # size 1
 
     def forward(self, x):
         h1 = self.linear1(x).tanh()
@@ -55,10 +43,43 @@ class Net(nn.Module):
 actorModel = Net((31*29)+1, 29*2, 20, 1)
 criticModel = Net((31*29)+1, 29*2, 20, 1)
 
+D_in = (31*29)+1
+H1 = 29*2
+H2 = 20
+D_out = 1
+
+a_Z_w1_p1 = torch.transpose(torch.zeros((D_in,H1), device = device, dtype = torch.float), 0, 1) # size 31x58
+a_Z_b1_p1 = torch.zeros(H1, device = device, dtype = torch.float) # size 1
+a_Z_w2_p1 = torch.zeros(H2,H1, device = device, dtype = torch.float) # size 1x58
+a_Z_b2_p1 = torch.zeros(H2, device = device, dtype = torch.float) # size 1
+a_Z_w3_p1 = torch.zeros(D_out,H2, device = device, dtype = torch.float) # size 1x29
+a_Z_b3_p1 = torch.zeros(D_out, device = device, dtype = torch.float) # size 1
+
+c_Z_w1_p1 = torch.transpose(torch.zeros((D_in,H1), device = device, dtype = torch.float), 0, 1) # size 31x58
+c_Z_b1_p1 = torch.zeros(H1, device = device, dtype = torch.float) # size 1
+c_Z_w2_p1 = torch.zeros(H2,H1, device = device, dtype = torch.float) # size 1x58
+c_Z_b2_p1 = torch.zeros(H2, device = device, dtype = torch.float) # size 1
+c_Z_w3_p1 = torch.zeros(D_out,H2, device = device, dtype = torch.float) # size 1x29
+c_Z_b3_p1 = torch.zeros(D_out, device = device, dtype = torch.float) # size 1
+
+a_Z_w1_p2 = torch.transpose(torch.zeros((D_in,H1), device = device, dtype = torch.float), 0, 1) # size 31x58
+a_Z_b1_p2 = torch.zeros(H1, device = device, dtype = torch.float) # size 1
+a_Z_w2_p2 = torch.zeros(H2,H1, device = device, dtype = torch.float) # size 1x58
+a_Z_b2_p2 = torch.zeros(H2, device = device, dtype = torch.float) # size 1
+a_Z_w3_p2 = torch.zeros(D_out,H2, device = device, dtype = torch.float) # size 1x29
+a_Z_b3_p2 = torch.zeros(D_out, device = device, dtype = torch.float) # size 1
+
+c_Z_w1_p2 = torch.transpose(torch.zeros((D_in,H1), device = device, dtype = torch.float), 0, 1) # size 31x58
+c_Z_b1_p2 = torch.zeros(H1, device = device, dtype = torch.float) # size 1
+c_Z_w2_p2 = torch.zeros(H2,H1, device = device, dtype = torch.float) # size 1x58
+c_Z_b2_p2 = torch.zeros(H2, device = device, dtype = torch.float) # size 1
+c_Z_w3_p2 = torch.zeros(D_out,H2, device = device, dtype = torch.float) # size 1x29
+c_Z_b3_p2 = torch.zeros(D_out, device = device, dtype = torch.float) # size 1
+
 
 try:
-    a = "ActorModel_minus"
-    c = "CriticModel_minus"
+    a = actorModelName
+    c = criticModelName
 
     actorData = torch.load(a)
     actorModel.load_state_dict(actorData)
@@ -93,8 +114,8 @@ def action(board_copy,dice,player,i):
 
     na = len(possible_moves)
     va = np.zeros(na)
-    for i in range(0, na):
-        move = possible_moves[i]
+    for t in range(0, na):
+        move = possible_moves[t]
 
         # this does not change the board_copy variable
         board = np.copy(board_copy)
@@ -105,7 +126,7 @@ def action(board_copy,dice,player,i):
         x = Variable(torch.tensor(one_hot_encoding(board), dtype = torch.float, device = device))
         #print(x.size(), 'x')
         y = actorModel.forward(x)
-        va[i] = y
+        va[t] = y
 
     if i == 0: count += 1
 
@@ -116,7 +137,16 @@ def action(board_copy,dice,player,i):
     if player == -1: move = flipped_agent.flip_move(move)
     if player == -1: board_copy = flipped_agent.flip_board(board_copy)
     
-    
+
+    for m in move:
+        board_copy = Backgammon.update_board(board_copy, m, player)
+
+    if not Backgammon.game_over(board_copy) and not Backgammon.check_for_error(board_copy):
+        update(board_copy, player)
+    else:
+        win += 1
+        update(board_copy, player, reward=1)
+        update(board_copy, player*-1, reward=-1)
                 
 
     
@@ -124,16 +154,17 @@ def action(board_copy,dice,player,i):
 
 
 def update(board, player, reward=0):
-    alpha = 0.005 # step size for tabular learning
-    alpha1 = 0.005 # step sizes using for the neural network (first layer)
-    alpha2 = 0.005 # (second layer)
-    alpha3 = 0.005 # (third layer)
-    epsilon = 0.005 # exploration parameter used by both players
-    lam_a = 0.7 # lambda parameter in TD(lam-bda)
-    lam_c = 0.7
+    alpha = 0.01 # step size for tabular learning
+    alpha1 = 0.01 # step sizes using for the neural network (first layer)
+    alpha2 = 0.01 # (second layer)
+    alpha3 = 0.01 # (third layer)
+    epsilon = 0.1 # exploration parameter used by both players
+    lam_a = 0.9 # lambda parameter in TD(lam-bda)
+    lam_c = 0.9
     gamma = 1 # for completeness
-    global Z_w1, Z_b1, Z_w2, Z_b2,Z_w3, Z_b3, xold1, xold2,count
-
+    global D_in,H1,H2,D_out, xold1, xold2,count
+    global a_Z_w1_p1,a_Z_b1_p1,a_Z_w2_p1,a_Z_b2_p1,a_Z_w3_p1,a_Z_b3_p1,c_Z_w1_p1,c_Z_b1_p1,c_Z_w2_p1,c_Z_b2_p1,c_Z_w3_p1,c_Z_b3_p1
+    global a_Z_w1_p2,a_Z_b1_p2,a_Z_w2_p2,a_Z_b2_p2,a_Z_w3_p2,a_Z_b3_p2,c_Z_w1_p2,c_Z_b1_p2,c_Z_w2_p2,c_Z_b2_p2,c_Z_w3_p2,c_Z_b3_p2
 
     if count > 2:
         x = Variable(torch.tensor(one_hot_encoding(board), dtype = torch.float, device = device))
@@ -168,13 +199,13 @@ def update(board, player, reward=0):
         b3 = param[5]
 
         if player == 1:
-                        # update the eligibility traces using the gradients
-            actorModel.Z_w3_p1 = gamma * lam_a * actorModel.Z_w3_p1 + w3.grad.data 
-            actorModel.Z_b3_p1 = gamma * lam_a * actorModel.Z_b3_p1 + b3.grad.data 
-            actorModel.Z_w2_p1 = gamma * lam_a * actorModel.Z_w2_p1 + w2.grad.data
-            actorModel.Z_b2_p1 = gamma * lam_a * actorModel.Z_b2_p1 + b2.grad.data
-            actorModel.Z_w1_p1 = gamma * lam_a * actorModel.Z_w1_p1 + w1.grad.data
-            actorModel.Z_b1_p1 = gamma * lam_a * actorModel.Z_b1_p1 + b1.grad.data
+            # update the eligibility traces using the gradients
+            a_Z_w3_p1 = gamma * lam_a * a_Z_w3_p1 + w3.grad.data 
+            a_Z_b3_p1 = gamma * lam_a * a_Z_b3_p1 + b3.grad.data 
+            a_Z_w2_p1 = gamma * lam_a * a_Z_w2_p1 + w2.grad.data
+            a_Z_b2_p1 = gamma * lam_a * a_Z_b2_p1 + b2.grad.data
+            a_Z_w1_p1 = gamma * lam_a * a_Z_w1_p1 + w1.grad.data
+            a_Z_b1_p1 = gamma * lam_a * a_Z_b1_p1 + b1.grad.data
             # zero the gradients
             w3.grad.data.zero_()
             b3.grad.data.zero_()
@@ -185,12 +216,12 @@ def update(board, player, reward=0):
             # perform now the update for the weights
             delta_a =  torch.tensor(delta_a, dtype = torch.float, device = device)
             # delta2 er 1x1 en b1,b2,b3 eru bara 1, margföldum því með delta[0] fyrir bias
-            w1.data = w1.data + alpha1 * delta_a * actorModel.Z_w1_p1
-            b1.data = b1.data + alpha1 * delta_a[0] * actorModel.Z_b1_p1
-            w2.data = w2.data + alpha2 * delta_a * actorModel.Z_w2_p1
-            b2.data = b2.data + alpha2 * delta_a[0] * actorModel.Z_b2_p1
-            w3.data = w3.data + alpha3 * delta_a * actorModel.Z_w3_p1
-            b3.data = b3.data + alpha3 * delta_a[0] * actorModel.Z_b3_p1
+            w1.data = w1.data + alpha1 * delta_a * a_Z_w1_p1
+            b1.data = b1.data + alpha1 * delta_a[0] * a_Z_b1_p1
+            w2.data = w2.data + alpha2 * delta_a * a_Z_w2_p1
+            b2.data = b2.data + alpha2 * delta_a[0] * a_Z_b2_p1
+            w3.data = w3.data + alpha3 * delta_a * a_Z_w3_p1
+            b3.data = b3.data + alpha3 * delta_a[0] * a_Z_b3_p1
             
             y_c.backward()
             
@@ -202,14 +233,13 @@ def update(board, player, reward=0):
             w3 = param[4]
             b3 = param[5]
             
-            
             # update the eligibility traces using the gradients
-            criticModel.Z_w3_p1 = gamma * lam_c * criticModel.Z_w3_p1 + w3.grad.data 
-            criticModel.Z_b3_p1 = gamma * lam_c * criticModel.Z_b3_p1 + b3.grad.data 
-            criticModel.Z_w2_p1 = gamma * lam_c * criticModel.Z_w2_p1 + w2.grad.data
-            criticModel.Z_b2_p1 = gamma * lam_c * criticModel.Z_b2_p1 + b2.grad.data
-            criticModel.Z_w1_p1 = gamma * lam_c * criticModel.Z_w1_p1 + w1.grad.data
-            criticModel.Z_b1_p1 = gamma * lam_c * criticModel.Z_b1_p1 + b1.grad.data
+            c_Z_w3_p1 = gamma * lam_c * c_Z_w3_p1 + w3.grad.data 
+            c_Z_b3_p1 = gamma * lam_c * c_Z_b3_p1 + b3.grad.data 
+            c_Z_w2_p1 = gamma * lam_c * c_Z_w2_p1 + w2.grad.data
+            c_Z_b2_p1 = gamma * lam_c * c_Z_b2_p1 + b2.grad.data
+            c_Z_w1_p1 = gamma * lam_c * c_Z_w1_p1 + w1.grad.data
+            c_Z_b1_p1 = gamma * lam_c * c_Z_b1_p1 + b1.grad.data
             # zero the gradients
             w3.grad.data.zero_()
             b3.grad.data.zero_()
@@ -220,20 +250,22 @@ def update(board, player, reward=0):
             # perform now the update for the weights
             delta_c =  torch.tensor(delta_c, dtype = torch.float, device = device)
             # delta2 er 1x1 en b1,b2,b3 eru bara 1, margföldum því með delta[0] fyrir bias
-            w1.data = w1.data + alpha1 * delta_a * criticModel.Z_w1_p1
-            b1.data = b1.data + alpha1 * delta_a[0] * criticModel.Z_b1_p1
-            w2.data = w2.data + alpha2 * delta_a * criticModel.Z_w2_p1
-            b2.data = b2.data + alpha2 * delta_a[0] * criticModel.Z_b2_p1
-            w3.data = w3.data + alpha3 * delta_a * criticModel.Z_w3_p1
-            b3.data = b3.data + alpha3 * delta_a[0] * criticModel.Z_b3_p1
+            w1.data = w1.data + alpha1 * delta_a * c_Z_w1_p1
+            b1.data = b1.data + alpha1 * delta_a[0] * c_Z_b1_p1
+            w2.data = w2.data + alpha2 * delta_a * c_Z_w2_p1
+            b2.data = b2.data + alpha2 * delta_a[0] * c_Z_b2_p1
+            w3.data = w3.data + alpha3 * delta_a * c_Z_w3_p1
+            b3.data = b3.data + alpha3 * delta_a[0] * c_Z_b3_p1
+
+
         else:
                         # update the eligibility traces using the gradients
-            actorModel.Z_w3_p2 = gamma * lam_a * actorModel.Z_w3_p2 + w3.grad.data 
-            actorModel.Z_b3_p2 = gamma * lam_a * actorModel.Z_b3_p2 + b3.grad.data 
-            actorModel.Z_w2_p2 = gamma * lam_a * actorModel.Z_w2_p2 + w2.grad.data
-            actorModel.Z_b2_p2 = gamma * lam_a * actorModel.Z_b2_p2 + b2.grad.data
-            actorModel.Z_w1_p2 = gamma * lam_a * actorModel.Z_w1_p2 + w1.grad.data
-            actorModel.Z_b1_p2 = gamma * lam_a * actorModel.Z_b1_p2 + b1.grad.data
+            a_Z_w3_p2 = gamma * lam_a * a_Z_w3_p2 + w3.grad.data 
+            a_Z_b3_p2 = gamma * lam_a * a_Z_b3_p2 + b3.grad.data 
+            a_Z_w2_p2 = gamma * lam_a * a_Z_w2_p2 + w2.grad.data
+            a_Z_b2_p2 = gamma * lam_a * a_Z_b2_p2 + b2.grad.data
+            a_Z_w1_p2 = gamma * lam_a * a_Z_w1_p2 + w1.grad.data
+            a_Z_b1_p2 = gamma * lam_a * a_Z_b1_p2 + b1.grad.data
             # zero the gradients
             w3.grad.data.zero_()
             b3.grad.data.zero_()
@@ -244,12 +276,12 @@ def update(board, player, reward=0):
             # perform now the update for the weights
             delta_a =  torch.tensor(delta_a, dtype = torch.float, device = device)
             # delta2 er 1x1 en b1,b2,b3 eru bara 1, margföldum því með delta[0] fyrir bias
-            w1.data = w1.data + alpha1 * delta_a * actorModel.Z_w1_p2
-            b1.data = b1.data + alpha1 * delta_a[0] * actorModel.Z_b1_p2
-            w2.data = w2.data + alpha2 * delta_a * actorModel.Z_w2_p2
-            b2.data = b2.data + alpha2 * delta_a[0] * actorModel.Z_b2_p2
-            w3.data = w3.data + alpha3 * delta_a * actorModel.Z_w3_p2
-            b3.data = b3.data + alpha3 * delta_a[0] * actorModel.Z_b3_p2
+            w1.data = w1.data + alpha1 * delta_a * a_Z_w1_p2
+            b1.data = b1.data + alpha1 * delta_a[0] * a_Z_b1_p2
+            w2.data = w2.data + alpha2 * delta_a * a_Z_w2_p2
+            b2.data = b2.data + alpha2 * delta_a[0] * a_Z_b2_p2
+            w3.data = w3.data + alpha3 * delta_a * a_Z_w3_p2
+            b3.data = b3.data + alpha3 * delta_a[0] * a_Z_b3_p2
             
             y_c.backward()
             
@@ -261,14 +293,13 @@ def update(board, player, reward=0):
             w3 = param[4]
             b3 = param[5]
             
-            
             # update the eligibility traces using the gradients
-            criticModel.Z_w3_p2 = gamma * lam_c * criticModel.Z_w3_p2 + w3.grad.data 
-            criticModel.Z_b3_p2 = gamma * lam_c * criticModel.Z_b3_p2 + b3.grad.data 
-            criticModel.Z_w2_p2 = gamma * lam_c * criticModel.Z_w2_p2 + w2.grad.data
-            criticModel.Z_b2_p2 = gamma * lam_c * criticModel.Z_b2_p2 + b2.grad.data
-            criticModel.Z_w1_p2 = gamma * lam_c * criticModel.Z_w1_p2 + w1.grad.data
-            criticModel.Z_b1_p2 = gamma * lam_c * criticModel.Z_b1_p2 + b1.grad.data
+            c_Z_w3_p2 = gamma * lam_c * c_Z_w3_p2 + w3.grad.data 
+            c_Z_b3_p2 = gamma * lam_c * c_Z_b3_p2 + b3.grad.data 
+            c_Z_w2_p2 = gamma * lam_c * c_Z_w2_p2 + w2.grad.data
+            c_Z_b2_p2 = gamma * lam_c * c_Z_b2_p2 + b2.grad.data
+            c_Z_w1_p2 = gamma * lam_c * c_Z_w1_p2 + w1.grad.data
+            c_Z_b1_p2 = gamma * lam_c * c_Z_b1_p2 + b1.grad.data
             # zero the gradients
             w3.grad.data.zero_()
             b3.grad.data.zero_()
@@ -279,14 +310,12 @@ def update(board, player, reward=0):
             # perform now the update for the weights
             delta_c =  torch.tensor(delta_c, dtype = torch.float, device = device)
             # delta2 er 1x1 en b1,b2,b3 eru bara 1, margföldum því með delta[0] fyrir bias
-            w1.data = w1.data + alpha1 * delta_a * criticModel.Z_w1_p2
-            b1.data = b1.data + alpha1 * delta_a[0] * criticModel.Z_b1_p2
-            w2.data = w2.data + alpha2 * delta_a * criticModel.Z_w2_p2
-            b2.data = b2.data + alpha2 * delta_a[0] * criticModel.Z_b2_p2
-            w3.data = w3.data + alpha3 * delta_a * criticModel.Z_w3_p2
-            b3.data = b3.data + alpha3 * delta_a[0] * criticModel.Z_b3_p2
-                        
-
+            w1.data = w1.data + alpha1 * delta_a * c_Z_w1_p2
+            b1.data = b1.data + alpha1 * delta_a[0] * c_Z_b1_p2
+            w2.data = w2.data + alpha2 * delta_a * c_Z_w2_p2
+            b2.data = b2.data + alpha2 * delta_a[0] * c_Z_b2_p2
+            w3.data = w3.data + alpha3 * delta_a * c_Z_w3_p2
+            b3.data = b3.data + alpha3 * delta_a[0] * c_Z_b3_p2
 
 
     if player == 1:
@@ -298,6 +327,33 @@ def update(board, player, reward=0):
         xold1 = []
         xold2 = []
         count = 0
+        a_Z_w1_p1 = torch.transpose(torch.zeros((D_in,H1), device = device, dtype = torch.float), 0, 1) # size 31x58
+        a_Z_b1_p1 = torch.zeros(H1, device = device, dtype = torch.float) # size 1
+        a_Z_w2_p1 = torch.zeros(H2,H1, device = device, dtype = torch.float) # size 1x58
+        a_Z_b2_p1 = torch.zeros(H2, device = device, dtype = torch.float) # size 1
+        a_Z_w3_p1 = torch.zeros(D_out,H2, device = device, dtype = torch.float) # size 1x29
+        a_Z_b3_p1 = torch.zeros(D_out, device = device, dtype = torch.float) # size 
+
+        c_Z_w1_p1 = torch.transpose(torch.zeros((D_in,H1), device = device, dtype = torch.float), 0, 1) # size 31x58
+        c_Z_b1_p1 = torch.zeros(H1, device = device, dtype = torch.float) # size 1
+        c_Z_w2_p1 = torch.zeros(H2,H1, device = device, dtype = torch.float) # size 1x58
+        c_Z_b2_p1 = torch.zeros(H2, device = device, dtype = torch.float) # size 1
+        c_Z_w3_p1 = torch.zeros(D_out,H2, device = device, dtype = torch.float) # size 1x29
+        c_Z_b3_p1 = torch.zeros(D_out, device = device, dtype = torch.float) # size 1
+
+        a_Z_w1_p2 = torch.transpose(torch.zeros((D_in,H1), device = device, dtype = torch.float), 0, 1) # size 31x58
+        a_Z_b1_p2 = torch.zeros(H1, device = device, dtype = torch.float) # size 1
+        a_Z_w2_p2 = torch.zeros(H2,H1, device = device, dtype = torch.float) # size 1x58
+        a_Z_b2_p2 = torch.zeros(H2, device = device, dtype = torch.float) # size 1
+        a_Z_w3_p2 = torch.zeros(D_out,H2, device = device, dtype = torch.float) # size 1x29
+        a_Z_b3_p2 = torch.zeros(D_out, device = device, dtype = torch.float) # size 1
+
+        c_Z_w1_p2 = torch.transpose(torch.zeros((D_in,H1), device = device, dtype = torch.float), 0, 1) # size 31x58
+        c_Z_b1_p2 = torch.zeros(H1, device = device, dtype = torch.float) # size 1
+        c_Z_w2_p2 = torch.zeros(H2,H1, device = device, dtype = torch.float) # size 1x58
+        c_Z_b2_p2 = torch.zeros(H2, device = device, dtype = torch.float) # size 1
+        c_Z_w3_p2 = torch.zeros(D_out,H2, device = device, dtype = torch.float) # size 1x29
+        c_Z_b3_p2 = torch.zeros(D_out, device = device, dtype = torch.float) # size 1
 
 
 
@@ -309,13 +365,10 @@ def one_hot_encoding(data, nb_classes=31):
     return np.append(oneHot, [double])
 
 def save():
-    torch.save(actorModel.state_dict(), 'ActorModel_minus')
-    torch.save(criticModel.state_dict(), 'CriticModel_minus')
+    global actorModelName, criticModelName
+    torch.save(actorModel.state_dict(), actorModelName)
+    torch.save(criticModel.state_dict(), criticModelName)
     
-
-
-
-
 
 
 
@@ -332,7 +385,7 @@ def main():
     board[24] = 2
 
     x = Variable(torch.tensor(one_hot_encoding(board), dtype = torch.float, device = device))
-    y = model.forward(x);
+    y = model.forward(x)
 
     ##Ath mymodel file-inn hann inniheldur gögnin
     torch.save(model.state_dict(), "mymodel")
