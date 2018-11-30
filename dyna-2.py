@@ -14,13 +14,25 @@ from torch.autograd import Variable
 device = torch.device('cpu')
 
 # Define theta and theta_trans, implement load later
-theta1 = np.zeros(196)
-theta_trans1 = np.zeros(196)
-theta2 = np.zeros(196)
-theta_trans2 = np.zeros(196)
+w1 = Variable(torch.randn(4*24,197, device = device, dtype=torch.float))
+b1 = Variable(torch.zeros((4*24,1), device = device, dtype=torch.float))
+w2 = Variable(torch.randn(2*24,4*24, device = device, dtype=torch.float))
+b2 = Variable(torch.zeros((2*24,1), device = device, dtype=torch.float))
+w3 = Variable(torch.randn(1,2*24, device = device, dtype=torch.float))
+b3 = Variable(torch.zeros((1,1), device = device, dtype=torch.float))
 
-def feature_encoding(board):
-	features = np.zeros(196)
+def forward(x):
+	h = (torch.mm(w1,x) + b1 ).sigmoid()
+	#h_sigmoid = h.sigmoid() 
+	h2 = (torch.mm(w2,h) + b2).sigmoid()
+	#h2_sigmoid = h2.sigmoid()
+	y = torch.mm(w3,h2) + b3
+	#y_sigmoid = y.sigmoid()
+	return y.sigmoid()
+
+
+def feature_encoding(board, doubleD):
+	features = np.zeros(197) #24*8+4+1 positions*bips + kill + doubledice
 
 	#Wet pips
 	for i in range(1,25):
@@ -41,7 +53,10 @@ def feature_encoding(board):
 	features[194] = board[27] * 1/15
 	features[195] = -board[28] * 1/15
 
+	features[196] = doubleD
+
 	return features
+
 
 def Q_trans(features, player):
 	global theta1, theta_trans1, theta2, theta_trans2
@@ -51,11 +66,31 @@ def Q_trans(features, player):
 		return np.dot(np.array(features), theta2) + np.dot(np.array(features), theta_trans2)
 
 def action(board, dice, player, doubleD):
-	possible_moves, possible_boards = Backgammon.legal_moves(board, dice, player)
-	na = np.zeros(len(possible_boards))
-	for i in range(possible_boards):
-		features = feature_encoding(possible_boards[i])
-		na[i] = Q_trans(features, player)
+	double = 1 if (dice[0]==dice[1] and i == 0) else 0
+	if player == -1: board_copy = flipped_agent.flip_board(np.copy(board_copy))
+	
+	# check out the legal moves available for the throw
+	possible_moves, possible_boards = Backgammon.legal_moves(board_copy, dice, player=1)
+
+	# if there are no moves available
+	if len(possible_moves) == 0:
+			return []
+
+	va = np.zeros(len(possible_boards))
+
+	for i, possibleBoard in enumerate(possible_boards):
+		x = Variable(torch.tensor(feature_encoding(possibleBoard), dtype=torch.float, device = device)).view(197,1)
+		va[i] = forward(x)
+
+	move = possible_moves[np.argmax(va)]
+
+	if player == -1: move = flipped_agent.flip_move(move)
+	
+	return move
+
+
+
+	
 	return possible_moves[np.argmax(na)]
 
 def search(board):
@@ -145,20 +180,28 @@ def learn(n):
 
 			player = player * -1
 
+def load(name):
+	w1 = torch.load(name)
+	w2 = torch.load(name)
+	w3 = torch.load(name)
+	b1 = torch.load(name)
+	b2 = torch.load(name)
+	b3 = torch.load(name)
+
+def save(name):
+	torch.save(w1, name)
+	torch.save(b1, name)
+	torch.save(w2, name)
+	torch.save(b2, name)
+	torch.save(w3, name)
+	torch.save(b3, name)
+
 
 def main():
-	board = Backgammon.init_board()
-	features = feature_encoding(board)
-	#Backgammon.pretty_print(board)
-	#print(board)
-	#print(features)
-	''' for i in range(0, 196):
-		print(features[i],features[i+1],features[i+2],features[i+3])
-		i = i + 4 '''
-
-	a = np.array([2,2,2])
-	b = np.array([2,2,2]).transpose()
-	print(np.dot(a,b))
+	# load
+	# Run real exp to initialize model
+	# learn
+	# save
 
 
 if __name__ == '__main__':

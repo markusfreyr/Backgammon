@@ -11,7 +11,7 @@ so make sure your changes here won't affect his performance.
 import numpy as np
 import agent
 import testagent
-#import pubeval
+import pubeval
 # import flipped_agent 
 win = 0
 
@@ -227,10 +227,11 @@ def play_a_game(commentary = False):
 			#agent.update(board_copy, nrMove)
 			
 			# if you're playing vs random agent:
-			if player == 1:
-				move, win = testagent.action(board_copy,dice,player,i)
-			elif player == -1:
-				move = random_agent(board_copy,dice,player,i) 
+			#if player == 1:
+			move, win = testagent.action(np.copy(board_copy),dice,player,i)
+			#elif player == -1:
+				#move = pubeval.agent_pubeval(np.copy(board),  dice,  player)
+				#move = random_agent(board_copy,dice,player,i)
 			
 			# update the board
 			if len(move) != 0:
@@ -264,7 +265,7 @@ def main():
 		print("player", 1, "won", winners["1"],"times and")
 		print("player", -1, "won", winners["-1"],"times")
 		print("agent thinks he won:",win)
-		if i%10 == 0:
+		if i%5 == 0:
 			print('saving weights')
 			testagent.save()
 	
