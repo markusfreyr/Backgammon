@@ -35,7 +35,7 @@ def roll_dice():
 
 def game_over(board):
 	# returns True if the game is over   
-	return board[27] == 15 or board[28] == -15
+	return board[27] >= 15 or board[28] <= -15
 
 def check_for_error(board):
 	# checks for obvious errors
