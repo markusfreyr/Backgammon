@@ -282,10 +282,10 @@ def learn(n):
 		first = True
 		while not Backgammon.game_over(board):
 			for i in range(1+int(dice[0] == dice[1])):
-				if first and dice[0] == dice[1]: i + 1 # if the first roll was double
+				count += 1 if i != 1 else count + 0
+				if first and dice[0] == dice[1]: i + 1 # if the first roll was double, take into account
 				first = False
 
-				count += 1 if i != 1 else count + 0
 				#Execute action
 				new_board = []
 				for m in a:
