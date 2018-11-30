@@ -22,6 +22,13 @@ b2 = Variable(torch.zeros((2*24,1), device = device, dtype=torch.float))
 w3 = Variable(torch.randn(1,2*24, device = device, dtype=torch.float))
 b3 = Variable(torch.zeros((1,1), device = device, dtype=torch.float))
 
+w1_trans = []
+b1_trans = []
+w2_trans = []
+b2_trans = []
+w3_trans = []
+b3_trans = []
+
 def forward(x):
 	h = (torch.mm(w1,x) + b1 ).sigmoid()
 	#h_sigmoid = h.sigmoid() 
@@ -74,9 +81,9 @@ def Q(features, player):
 		return np.dot(np.array(features), theta2)
 
 
-def action(board, dice, player, doubleD):
+def action(board, dice, player, i):
 
-	""" double = 1 if (dice[0]==dice[1] and i == 0) else 0
+	doubleD = 1 if (dice[0]==dice[1] and i == 0) else 0
 	if player == -1: board_copy = flipped_agent.flip_board(np.copy(board_copy))
 	
 	# check out the legal moves available for the throw
@@ -89,17 +96,17 @@ def action(board, dice, player, doubleD):
 	va = np.zeros(len(possible_boards))
 
 	for i, possibleBoard in enumerate(possible_boards):
-		x = Variable(torch.tensor(feature_encoding(possibleBoard), dtype=torch.float, device = device)).view(197,1)
+		x = Variable(torch.tensor(feature_encoding(possibleBoard, doubleD), dtype=torch.float, device = device)).view(197,1)
 		va[i] = forward(x)
 
 	move = possible_moves[np.argmax(va)]
 
 	if player == -1: move = flipped_agent.flip_move(move)
 	
-	return move """
+	return move
 
 
-	print("board")
+	""" print("board") ÆVAR
 	print(board)
 	print(dice)
 	print(Backgammon.check_for_error(board))
@@ -114,7 +121,7 @@ def action(board, dice, player, doubleD):
 		features = feature_encoding(possible_boards[i])
 		na[i] = Q_trans(features, player)
 
-	return possible_moves[np.argmax(na)]
+	return possible_moves[np.argmax(na)] """
 
 def search(board,player):
 	global theta1, theta_trans1, theta2, theta_trans2
@@ -129,13 +136,13 @@ def search(board,player):
 		z_trans2 = np.zeros(196)
 
 		dice = Backgammon.roll_dice()
-		a1 = action(np.copy(board), dice, player, 0)
+		a1 = action(np.copy(board), dice, player, 0) #find action for p1
 		if player == 1:
-			board1_old = np.copy(board)
+			board1_old = np.copy(board) # Keep board for p1
 		else:
 			board2_old = np.copy(board)
 		for i in range(1+int(dice[0] == dice[1])):
-			# update the board
+			# update the board, take action a1
 			if len(a1) != 0:
 				for m in a1:
 					board = Backgammon.update_board(board, m, player)
@@ -143,6 +150,7 @@ def search(board,player):
 		if Backgammon.game_over(board):
 			return
 
+		# do same for p2
 		player = player*-1
 		dice = Backgammon.roll_dice()
 		a2 = action(np.copy(board), dice, player, 0)
@@ -155,12 +163,13 @@ def search(board,player):
 			if len(a2) != 0:
 				for m in a2:
 					board = Backgammon.update_board(board, m, player)
-		
-		player = player*-1
-		dice = Backgammon.roll_dice()
-		a = action(np.copy(board), dice, player, 0)
 		if Backgammon.game_over(board):
 			return
+		
+		# change players again
+		player = player*-1
+		dice = Backgammon.roll_dice()
+		a = action(np.copy(board), dice, player, 0) # find action for p1
 		counting_now = 0
 		while not Backgammon.game_over(board):
 			print("count")
@@ -222,17 +231,40 @@ def search(board,player):
 			a = a_new
 
 def learn(n):
-	global theta1, theta_trans1, theta2, theta_trans2
+	#global theta1, theta_trans1, theta2, theta_trans2
+	global w1,b1,w2,b2,w3,b3, w1_trans,b1_trans,w2_trans,b2_trans,w3_trans,b3_trans
 
-	A = defaultdict(list)
-	B = defaultdict(list)
+	#A = defaultdict(list)
+	#B = defaultdict(list)
 	#theta = 0 gert annarsstaðar
 	#while True:
 	for i in range(n):
-		print(i)
 		count = 0
 		xold1 = []
 		xold2 = []
+		# Eligibility
+		z1_w1 = Variable(torch.zeros((4*24,197), device = device, dtype=torch.float))
+		z1_b1 = Variable(torch.zeros((4*24,1), device = device, dtype=torch.float))
+		z1_w2 = Variable(torch.zeros((2*24,4*24), device = device, dtype=torch.float))
+		z1_b2 = Variable(torch.zeros((2*24,1), device = device, dtype=torch.float))
+		z1_w3 = Variable(torch.zeros((1,2*24), device = device, dtype=torch.float))
+		z1_b3 = Variable(torch.zeros((1,1), device = device, dtype=torch.float))
+
+		z2_w1 = Variable(torch.zeros((4*24,197), device = device, dtype=torch.float))
+		z2_b1 = Variable(torch.zeros((4*24,1), device = device, dtype=torch.float))
+		z2_w2 = Variable(torch.zeros((2*24,4*24), device = device, dtype=torch.float))
+		z2_b2 = Variable(torch.zeros((2*24,1), device = device, dtype=torch.float))
+		z2_w3 = Variable(torch.zeros((1,2*24), device = device, dtype=torch.float))
+		z2_b3 = Variable(torch.zeros((1,1), device = device, dtype=torch.float))
+
+		# initialize transient
+		w1_trans = Variable(torch.randn(4*24,197, device = device, dtype=torch.float))
+		b1_trans = Variable(torch.zeros((4*24,1), device = device, dtype=torch.float))
+		w2_trans = Variable(torch.randn(2*24,4*24, device = device, dtype=torch.float))
+		b2_trans = Variable(torch.zeros((2*24,1), device = device, dtype=torch.float))
+		w3_trans = Variable(torch.randn(1,2*24, device = device, dtype=torch.float))
+		b3_trans = Variable(torch.zeros((1,1), device = device, dtype=torch.float))
+
 		# initialize game
 		board = Backgammon.init_board()
 		state = feature_encoding(np.copy(board))
@@ -241,59 +273,89 @@ def learn(n):
 
 		dice = Backgammon.roll_dice() # first roll
 
-		theta_trans1 = np.zeros(196)
-		theta_trans2 = np.zeros(196)
-		z1 = 0
 		z2 = 0
-		search(board,player) #senda inn A,B og player inn í search ?? ?? ?? ??
+		search(board,player)
+
+		# find action for the first player
 		a = action(np.copy(board), dice, player, 0)
 
+		first = True
 		while not Backgammon.game_over(board):
 			for i in range(1+int(dice[0] == dice[1])):
+				if first and dice[0] == dice[1]: i + 1 # if the first roll was double
+				first = False
+
 				count += 1 if i != 1 else count + 0
 				#Execute action
 				new_board = []
 				for m in a:
-					new_board = Backgammon.update_board(board, m, player)
-				#Observe state for nextplayer
-				new_state = feature_encoding(np.copy(new_board))
-				#Observe reward
+					new_board = Backgammon.update_board(np.copy(board), m, player)
+
 				reward = 1 if Backgammon.game_over(new_board) else 0
 
-				# update model
-				#A[(state,a)] = new_board
-				#B[(state,a)] = reward
-				# search with new state
 				search(new_board,player)
 				
-				#action for the next player?
+				#action for next player or same if double roll
+				switch = 1 if i == 0 and dice[0] == dice[1] else -1
+				doubleD = 1 if switch == 1 else 0
 				dice = Backgammon.roll_dice()
-				new_action = action(new_board, dice, player*-1,0)
+				new_action = action(new_board, dice, player*switch,i)
 				
-				if count > 3:
+				if count > 2:
 					if player == 1:
-						delta = reward + Q(state,player) - Q(xold1,player)
-						#theta1 = theta1 + alpha(board,a)*delta*z
-						#z = lamb*z + phi
-						theta1 = theta1 + 0.1 * delta * z1
-						z1 = 0.1 * z1 + 0.1
+						x = Variable(torch.tensor(feature_encoding(board, doubleD), dtype=torch.float, device = device)).view(197,1)
+						y = forward(x)
+						yold = forward(xold1)
+						delta = reward + y - yold # TD-error
+						
+						# update theta
+						thetaUpdate(z1_w1,z1_b1,z1_w2,z1_b2,z1_w3,z1_b3, delta)
+						#elligibillyboy
+						z1_w1,z1_b1,z1_w2,z1_b2,z1_w3,z1_b3 = eligibillyUpdate(z1_w1,z1_b1,z1_w2,z1_b2,z1_w3,z1_b3, yold)
+
 					else:
-						delta = reward + Q(state,player) - Q(xold2,player)
-						#theta2 = theta2 + alpha(board,a)*delta*z
-						#z = lamb*z + phi
-						theta2 = theta2 + 0.1 * delta * z2
-						z2 = 0.1 * z2 + 0.1
+						# Flip?
+						flipped = flipped_agent.flip_board(np.copy(board))
+						x = Variable(torch.tensor(feature_encoding(flipped, doubleD), dtype=torch.float, device = device)).view(197,1)
+						y = forward(x)
+						yold = forward(xold2) # xold already flipped
+						delta = reward + y - yold # TD-error
+						
+						# update theta
+						thetaUpdate(z2_w1,z2_b1,z2_w2,z2_b2,z2_w3,z2_b3, delta)
+						#elligibillyboy
+						z2_w1,z2_b1,z2_w2,z2_b2,z2_w3,z2_b3 = eligibillyUpdate(z2_w1,z2_b1,z2_w2,z2_b2,z2_w3,z2_b3, yold)
 
 				if player == 1:
-					xold1 = state
+					xold1 = Variable(torch.tensor(feature_encoding(board, doubleD), dtype=torch.float, device = device)).view(197,1)
 				else:
-					xold2 = state
+					#Flip?
+					flipped = flipped_agent.flip_board(np.copy(board))
+					xold2 = Variable(torch.tensor(feature_encoding(flipped, doubleD), dtype=torch.float, device = device)).view(197,1)
 
-				state = new_state
 				board = new_board
 				a = new_action
 
-			player = player * -1
+				player = player * switch
+
+def thetaUpdate(zw1, zb1, zw2, zb2, zw3, zb3, delta):
+	global w1,b1,w2,b2,w3,b3
+	w1 = w1 + 0.01* delta * zw1
+	b1 = b1 + 0.01* delta * zb1
+	w2 = w2 + 0.01* delta * zw2
+	b2 = b2 + 0.01* delta * zb2
+	w3 = w3 + 0.01* delta * zw3
+	b3 = b3 + 0.01* delta * zb3
+
+def eligibillyUpdate(zw1, zb1, zw2, zb2, zw3, zb3, phi):
+	zw1 = 0.7 * zw1 + phi
+	zb1 = 0.7 * zb1 + phi
+	zw2 = 0.7 * zw2 + phi
+	zb2 = 0.7 * zb2 + phi
+	zw3 = 0.7 * zw3 + phi
+	zb3 = 0.7 * zb3 + phi
+
+	return zw1, zb1, zw2, zb2, zw3, zb3
 
 def load(name):
 	w1 = torch.load(name)
