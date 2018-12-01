@@ -57,8 +57,8 @@ criticModel = Net((31*29)+1, 29*2, 20, 1)
 
 
 try:
-    a = "ActorModel_minus"
-    c = "CriticModel_minus"
+    a = "actorModel_A001_L09_ele.txt"
+    c = "criticModel_A001_L09_ele.txt"
 
     actorData = torch.load(a)
     actorModel.load_state_dict(actorData)
@@ -93,8 +93,8 @@ def action(board_copy,dice,player,i):
 
     na = len(possible_moves)
     va = np.zeros(na)
-    for i in range(0, na):
-        move = possible_moves[i]
+    for t in range(0, na):
+        move = possible_moves[t]
 
         # this does not change the board_copy variable
         board = np.copy(board_copy)
@@ -105,7 +105,7 @@ def action(board_copy,dice,player,i):
         x = Variable(torch.tensor(one_hot_encoding(board), dtype = torch.float, device = device))
         #print(x.size(), 'x')
         y = actorModel.forward(x)
-        va[i] = y
+        va[t] = y
 
     if i == 0: count += 1
 
@@ -116,7 +116,16 @@ def action(board_copy,dice,player,i):
     if player == -1: move = flipped_agent.flip_move(move)
     if player == -1: board_copy = flipped_agent.flip_board(board_copy)
     
-    
+    """ looser_board = np.copy(board_copy)
+    for m in move:
+        board_copy = Backgammon.update_board(board_copy, m, player)
+
+    if not Backgammon.game_over(board_copy) and not Backgammon.check_for_error(board_copy):
+        update(board_copy, player)
+    else:
+        win += 1
+        update(board_copy, player, reward=1)
+        update(board_copy, player*-1, reward=-1) """
                 
 
     
@@ -168,7 +177,7 @@ def update(board, player, reward=0):
         b3 = param[5]
 
         if player == 1:
-                        # update the eligibility traces using the gradients
+            # update the eligibility traces using the gradients
             actorModel.Z_w3_p1 = gamma * lam_a * actorModel.Z_w3_p1 + w3.grad.data 
             actorModel.Z_b3_p1 = gamma * lam_a * actorModel.Z_b3_p1 + b3.grad.data 
             actorModel.Z_w2_p1 = gamma * lam_a * actorModel.Z_w2_p1 + w2.grad.data

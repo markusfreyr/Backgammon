@@ -30,13 +30,14 @@ w3_trans = []
 b3_trans = []
 
 def forward(x):
-	h = (torch.mm(w1,x) + b1 ).sigmoid()
-	#h_sigmoid = h.sigmoid() 
+	h = (torch.mm(w1,x) + b1).sigmoid()
 	h2 = (torch.mm(w2,h) + b2).sigmoid()
-	#h2_sigmoid = h2.sigmoid()
 	y = torch.mm(w3,h2) + b3
-	#y_sigmoid = y.sigmoid()
-	return y.sigmoid()
+
+	h_t = (torch.mm(w1_trans,x) + b1_trans).sigmoid()
+	h2_t = (torch.mm(w2_trans,h_t) + b2_trans).sigmoid()
+	y_t = torch.mm(w3_trans,h2_t) + b3_trans
+	return y.sigmoid() + y_t.sigmoid()
 
 
 def feature_encoding(board, doubleD):
@@ -65,22 +66,6 @@ def feature_encoding(board, doubleD):
 
 	return features
 
-
-def Q_trans(features, player):
-	global theta1, theta_trans1, theta2, theta_trans2
-	if player == 1:
-		return np.dot(np.array(features), theta1) + np.dot(np.array(features), theta_trans1)
-	else:
-		return np.dot(np.array(features), theta2) + np.dot(np.array(features), theta_trans2)
-
-def Q(features, player):
-	global theta1, theta_trans1, theta2, theta_trans2
-	if player == 1:
-		return np.dot(np.array(features), theta1)
-	else:
-		return np.dot(np.array(features), theta2)
-
-
 def action(board, dice, player, i):
 
 	doubleD = 1 if (dice[0]==dice[1] and i == 0) else 0
@@ -105,23 +90,6 @@ def action(board, dice, player, i):
 	
 	return move
 
-
-	""" print("board") ÆVAR
-	print(board)
-	print(dice)
-	print(Backgammon.check_for_error(board))
-	#if Backgammon.check_for_error(board):
-	#	k = k+1
-	possible_moves, possible_boards = Backgammon.legal_moves(board, dice, player)
-	print("test")
-	if possible_moves == []:
-		return []
-	na = np.zeros(len(possible_boards))
-	for i in range(len(na)):
-		features = feature_encoding(possible_boards[i])
-		na[i] = Q_trans(features, player)
-
-	return possible_moves[np.argmax(na)] """
 
 def search(board,player):
 	global w1_trans,b1_trans,w2_trans,b2_trans,w3_trans,b3_trans
@@ -283,7 +251,7 @@ def learn(n):
 				
 				#action for next player or same if double roll
 				doubleD = 1 if switch == 1 else 0
-				dice = Backgammon.roll_dice()
+				
 				new_action = action(new_board, dice, player*switch,i)
 				
 				if count > 3:
