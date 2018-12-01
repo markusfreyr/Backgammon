@@ -11,7 +11,7 @@ so make sure your changes here won't affect his performance.
 import numpy as np
 import agent
 import testagent
-import dyna_2
+import dynaComp
 import pubeval
 # import flipped_agent 
 win = 0
@@ -229,10 +229,12 @@ def play_a_game(commentary = False):
 			
 			# if you're playing vs random agent:
 			if player == 1:
-				move, win = testagent.action(np.copy(board_copy),dice,player,i)
-			elif player == -1:
-				move = pubeval.agent_pubeval(np.copy(board),  dice,  player)
-				#move = random_agent(board_copy,dice,player,i)
+				#move, win = testagent.action(np.copy(board_copy),dice,player,i)
+				move = dynaComp.action(board_copy,dice,player,i)
+			else:
+				#move = pubeval.agent_pubeval(np.copy(board),  dice,  player)
+				move = random_agent(board_copy,dice,player,i)
+				#move = dynaComp.action(board_copy,dice,player,i)
 			
 			# update the board
 			if len(move) != 0:

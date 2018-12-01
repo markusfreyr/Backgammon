@@ -22,7 +22,16 @@ w3 = Variable(torch.randn(1,2*24, device = device, dtype=torch.float))
 b3 = Variable(torch.zeros((1,1), device = device, dtype=torch.float))
 
 # load permanent memo
-load('dyna')
+name = './dynaWeigts/'
+try:
+	w1 = torch.load(name+'w1')
+	w2 = torch.load(name+'w2')
+	w3 = torch.load(name+'w3')
+	b1 = torch.load(name+'b1')
+	b2 = torch.load(name+'b2')
+	b3 = torch.load(name+'b3')
+except FileNotFoundError:
+		print('starting fresh')
 
 
 def forward(x):

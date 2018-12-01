@@ -93,6 +93,7 @@ def action(board, dice, player, i):
 
 def search(board,player):
 	global w1_trans,b1_trans,w2_trans,b2_trans,w3_trans,b3_trans
+	startState = np.copy(board)
 	xold1 = []
 	xold2 = []
 	start = time.time()
@@ -121,7 +122,7 @@ def search(board,player):
 		z2_b3 = Variable(torch.zeros((1,1), device = device, dtype=torch.float))
 
 		dice = Backgammon.roll_dice()
-		a = action(np.copy(board), dice, player, 0)
+		a = action(np.copy(startState), dice, player, 0)
 
 		count = 0
 		first = True;
@@ -143,7 +144,7 @@ def search(board,player):
 				#action for next player or same if double roll
 				doubleD = 1 if switch == 1 else 0
 				dice = Backgammon.roll_dice()
-				new_action = action(new_board, dice, player*switch,i)
+				new_action = action(np.copy(new_board), dice, player*switch,i)
 				
 				if count > 3:
 					if player == 1:
@@ -192,8 +193,9 @@ def learn(n):
 	#B = defaultdict(list)
 	#theta = 0 gert annarsstaðar
 	#while True:
-	for i in range(n):
-		print(i)
+	for t in range(n):
+		print(t)
+		if (t+1)%500 == 0: save('./dynaW/')
 		count = 0
 		xold1 = []
 		xold2 = []
@@ -252,9 +254,10 @@ def learn(n):
 				#action for next player or same if double roll
 				doubleD = 1 if switch == 1 else 0
 				
-				new_action = action(new_board, dice, player*switch,i)
+				new_action = action(np.copy(new_board), dice, player*switch,i)
 				
 				if count > 3:
+					print('up')
 					if player == 1:
 						x = Variable(torch.tensor(feature_encoding(board, doubleD), dtype=torch.float, device = device)).view(197,1)
 						y = forward(x)
@@ -321,34 +324,34 @@ def eligibillyUpdate(zw1, zb1, zw2, zb2, zw3, zb3, phi):
 
 def load(name):
 	try:
-		w1 = torch.load(name)
-		w2 = torch.load(name)
-		w3 = torch.load(name)
-		b1 = torch.load(name)
-		b2 = torch.load(name)
-		b3 = torch.load(name)
+		w1 = torch.load(name+'w1')
+		w2 = torch.load(name+'w2')
+		w3 = torch.load(name+'w3')
+		b1 = torch.load(name+'b1')
+		b2 = torch.load(name+'b2')
+		b3 = torch.load(name+'b3')
 	except FileNotFoundError:
 		print('starting fresh')
 
 def save(name):
-	torch.save(w1, name)
-	torch.save(b1, name)
-	torch.save(w2, name)
-	torch.save(b2, name)
-	torch.save(w3, name)
-	torch.save(b3, name)
+	torch.save(w1, name+'w1')
+	torch.save(b1, name+'b1')
+	torch.save(w2, name+'w2')
+	torch.save(b2, name+'b2')
+	torch.save(w3, name+'w3')
+	torch.save(b3, name+'b3')
+	print('saved to ', name)
 
 
 def main():
 	# load
-	load('dyna')
+	load('./dynaW/')
+	learn(1)
+	save('./dynaW/')
 	# learn
-	learn(500)
-	save('dyna')
-	#save
-	#save('dyna')
-
-	learn(10)
+	learn(50000)
+	# til öryggis
+	save('./dynaW/')
 
 
 if __name__ == '__main__':
